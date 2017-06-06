@@ -1,6 +1,22 @@
 var models = require("../models");
 var Sequelize = require('sequelize');
+var score = 0;
+var fin = 0;
+var array_preguntas;
+var array_preguntas_respondidas;
+var idQuiz;
+var numRandom;
+var pos;
 
+models.Quiz.findAll()
+	.then(function(quizzes){
+	array_preguntas = quizzes;
+	array_preguntas_respondidas = new Array (quizzes.length);
+	for (var i = 0; i< quizzes.length; i++){
+	
+		array_preguntas_respondidas[i] = 0;
+	}
+});
 var paginate = require('../helpers/paginate').paginate;
 
 // Autoload el quiz asociado a :quizId
@@ -56,8 +72,8 @@ exports.index = function (req, res, next) {
         return models.Quiz.findAll(findOptions);
     })
     .then(function (quizzes) {
-        res.render('quizzes/index.ejs', {
-            quizzes: quizzes,
+	   res.render('quizzes/index.ejs', {
+           quizzes: quizzes,
             search: search
         });
     })
@@ -187,3 +203,69 @@ exports.check = function (req, res, next) {
         answer: answer
     });
 };
+
+aleatorio = function(){
+var num = parseInt(Math.round(Math.random()*(array_preguntas.length -1)));
+idDefinitiva = array_preguntas[num].id;
+for(var i = 0; i< array_preguntas.length; i++){
+if(array_preguntas_respondidas[i] === 0){
+idQuiz = idDefinitiva;
+pos = i;
+break;
+
+}
+else if(array_preguntas_respondidas[i] === idDefinitiva){
+aleatorio();
+}
+}
+};
+
+// GET /quizzes/random_play Rutina de atencion para juego aleatorio
+
+exports.randomPlay = function(req,res,next){
+	if(score === array_preguntas.length){ 
+		res.render('quizzes/random_nomore',{
+			score : score
+		});
+	}
+	
+	var answer = req.query.answer || '';
+	aleatorio();
+	models.Quiz.findById(idQuiz)
+	.then(function(quiz){
+		
+       		 res.render('quizzes/random_play',{
+			quiz:quiz,
+  		     answer: answer,
+               	     score: score
+
+});
+   
+ });
+};
+
+// POST Check al jugar modo random
+
+exports.randomCheck = function (req, res, next) {
+
+   	 var answer = req.query.answer || "";
+
+   	 var result = answer.toLowerCase().trim() === req.quiz.answer.toLowerCase().trim();
+	 if(result && score < array_preguntas_respondidas.length){
+		score++;
+		array_preguntas_respondidas[pos] = idDefinitiva;
+	}else{
+		for(var i = 0; i<array_preguntas.length; i++){
+			array_preguntas_respondidas[i] = 0;
+} 
+		fin=1;
+            }
+        
+            res.render('quizzes/random_result', {
+                quiz: req.quiz,
+                result: result,
+                score: score,
+                answer: answer
+                
+            });
+    };
