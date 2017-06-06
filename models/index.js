@@ -15,7 +15,7 @@ if (!process.env.DATABASE_URL) {
     url = "sqlite:///";
     storage = "quiz.sqlite";
 } else {
-    url = process.env.DATABASE_URL;
+    url = postgres://mulmmnqecqvcia:bac4974be1ca1b560625401eab8cd1d991df83445abfdbaf2e39d0c6f98ef54f@ec2-107-21-99-176.compute-1.amazonaws.com:5432/dcomnqljohq8np;
     storage = process.env.DATABASE_STORAGE || "";
 }
 
