@@ -35,7 +35,7 @@ router.get('/quizzes/:quizId(\\d+)/play',  quizController.play);
 router.get('/quizzes/:quizId(\\d+)/check', quizController.check);
 
 //Ruta para jugar aleatoriamente practica52
-router.get('/quizzes/randomplay' , quizController.randomPlay);
-router.get('/quizzes/randomcheck/:quizId(\\d+)', quizController.randomCheck);
+router.get('/quizzes/randomplay' , quizController.randomplay);
+router.get('/quizzes/randomcheck/:quizId(\\d+)', quizController.randomcheck);
 
 module.exports = router;

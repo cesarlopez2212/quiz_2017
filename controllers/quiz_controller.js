@@ -1,22 +1,5 @@
 var models = require("../models");
 var Sequelize = require('sequelize');
-var score = 0;
-var fin = 0;
-var array_preguntas;
-var array_preguntas_respondidas;
-var idQuiz;
-var numRandom;
-var pos;
-
-models.Quiz.findAll()
-	.then(function(quizzes){
-	array_preguntas = quizzes;
-	array_preguntas_respondidas = new Array (quizzes.length);
-	for (var i = 0; i< quizzes.length; i++){
-	
-		array_preguntas_respondidas[i] = 0;
-	}
-});
 var paginate = require('../helpers/paginate').paginate;
 
 // Autoload el quiz asociado a :quizId
@@ -204,68 +187,75 @@ exports.check = function (req, res, next) {
     });
 };
 
-aleatorio = function(){
-var num = parseInt(Math.round(Math.random()*(array_preguntas.length -1)));
-idDefinitiva = array_preguntas[num].id;
-for(var i = 0; i< array_preguntas.length; i++){
-if(array_preguntas_respondidas[i] === 0){
-idQuiz = idDefinitiva;
-pos = i;
-break;
+exports.randomplay = function(req,res,next){
 
-}
-else if(array_preguntas_respondidas[i] === idDefinitiva){
-aleatorio();
-}
-}
+    if(!req.session.score) req.session.score = 0;
+    if(req.session.score === 0) req.session.preg = [-1];
+
+    var resp = req.query.answer || '';
+
+    models.Quiz.count({where:{ id:{ $notIn: req.session.preg}}})
+        .then(function(cont){
+
+            var rnd = Math.floor((Math.random()*(cont - 0) + 0));
+            return models.Quiz.findAll({where:
+                    { id:{$notIn: [req.session.preg]}
+            }})
+            .then(function(quiz){
+            pregunta = quiz[rnd];
+            req.session.preg.push(pregunta.id);
+
+            res.render('quizzes/random_play',{
+    
+                quiz: pregunta,
+                answer: resp,
+                score: req.session.score
+
+            });
+            });
+        });
+    
 };
 
-// GET /quizzes/random_play Rutina de atencion para juego aleatorio
+// GET Juego aleatorio
+exports.randomcheck = function (req, res, next) {
 
-exports.randomPlay = function(req,res,next){
-	if(score === array_preguntas.length){ 
-		res.render('quizzes/random_nomore',{
-			score : score
-		});
-	}
-	
-	var answer = req.query.answer || '';
-	aleatorio();
-	models.Quiz.findById(idQuiz)
-	.then(function(quiz){
-		
-       		 res.render('quizzes/random_play',{
-			quiz:quiz,
-  		     answer: answer,
-               	     score: score
+    var resp = req.query.answer || "";
 
-});
-   
- });
-};
+    var result = resp.toLowerCase().trim() === req.quiz.answer.toLowerCase().trim();
 
-// POST Check al jugar modo random
+    //if(!req.session.score) req.session.score = 0;
 
-exports.randomCheck = function (req, res, next) {
+    if(result){
 
-   	 var answer = req.query.answer || "";
+	++req.session.score;
+    
+    }else{
 
-   	 var result = answer.toLowerCase().trim() === req.quiz.answer.toLowerCase().trim();
-	 if(result && score < array_preguntas_respondidas.length){
-		score++;
-		array_preguntas_respondidas[pos] = idDefinitiva;
-	}else{
-		for(var i = 0; i<array_preguntas.length; i++){
-			array_preguntas_respondidas[i] = 0;
-} 
-		fin=1;
-            }
-        
+        req.session.score = 0;
+        req.session.preg = [-1];
+    }
+
+    models.Quiz.count()
+        .then(function(cont){
+
+        if(req.session.score === cont){
+
+            req.session.preg = [-1];
+            req.session.score = 0;
+            res.render('quizzes/random_nomore' ,{
+                score:req.session.score});
+            
+
+        }
+        else{
+
             res.render('quizzes/random_result', {
                 quiz: req.quiz,
                 result: result,
-                score: score,
-                answer: answer
-                
-            });
-    };
+                score:req.session.score,
+                answer: resp});
+        }
+    });
+
+};
