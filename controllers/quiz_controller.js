@@ -1,6 +1,5 @@
 var models = require("../models");
 var Sequelize = require('sequelize');
-
 var paginate = require('../helpers/paginate').paginate;
 
 // Autoload el quiz asociado a :quizId
@@ -87,10 +86,16 @@ exports.index = function (req, res, next) {
         return models.Quiz.findAll(findOptions);
     })
     .then(function (quizzes) {
+
         res.render('quizzes/index.ejs', {
             quizzes: quizzes,
             search: search,
             title: title
+
+	   res.render('quizzes/index.ejs', {
+           quizzes: quizzes,
+            search: search
+
         });
     })
     .catch(function (error) {
@@ -221,4 +226,77 @@ exports.check = function (req, res, next) {
         result: result,
         answer: answer
     });
+};
+
+exports.randomplay = function(req,res,next){
+
+    if(!req.session.score) req.session.score = 0;
+    if(req.session.score === 0) req.session.preg = [-1];
+
+    var resp = req.query.answer || '';
+
+    models.Quiz.count({where:{ id:{ $notIn: req.session.preg}}})
+        .then(function(cont){
+
+            var rnd = Math.floor((Math.random()*(cont - 0) + 0));
+            return models.Quiz.findAll({where:
+                    { id:{$notIn: [req.session.preg]}
+            }})
+            .then(function(quiz){
+            pregunta = quiz[rnd];
+            req.session.preg.push(pregunta.id);
+
+            res.render('quizzes/random_play',{
+    
+                quiz: pregunta,
+                answer: resp,
+                score: req.session.score
+
+            });
+            });
+        });
+    
+};
+
+// GET Juego aleatorio
+exports.randomcheck = function (req, res, next) {
+
+    var resp = req.query.answer || "";
+
+    var result = resp.toLowerCase().trim() === req.quiz.answer.toLowerCase().trim();
+
+    //if(!req.session.score) req.session.score = 0;
+
+    if(result){
+
+	++req.session.score;
+    
+    }else{
+
+        req.session.score = 0;
+        req.session.preg = [-1];
+    }
+
+    models.Quiz.count()
+        .then(function(cont){
+
+        if(req.session.score === cont){
+
+            req.session.preg = [-1];
+            req.session.score = 0;
+            res.render('quizzes/random_nomore' ,{
+                score:req.session.score});
+            
+
+        }
+        else{
+
+            res.render('quizzes/random_result', {
+                quiz: req.quiz,
+                result: result,
+                score:req.session.score,
+                answer: resp});
+        }
+    });
+
 };
