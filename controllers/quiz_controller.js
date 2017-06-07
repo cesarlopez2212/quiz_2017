@@ -231,23 +231,22 @@ exports.randomplay = function(req,res,next){
     if(!req.session.score) req.session.score = 0;
     if(req.session.score === 0) req.session.preg = [-1];
 
-    var resp = req.query.answer || '';
+    
 
     models.Quiz.count({where:{ id:{ $notIn: req.session.preg}}})
         .then(function(cont){
 
-            var rnd = Math.floor((Math.random()*(cont - 0) + 0));
             return models.Quiz.findAll({where:
                     { id:{$notIn: [req.session.preg]}
             }})
             .then(function(quiz){
+	    var rnd = Math.floor((Math.random()*(cont - 0) + 0));
             pregunta = quiz[rnd];
             req.session.preg.push(pregunta.id);
 
             res.render('quizzes/random_play',{
-    
+
                 quiz: pregunta,
-                answer: resp,
                 score: req.session.score
 
             });
