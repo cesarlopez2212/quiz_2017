@@ -233,11 +233,11 @@ exports.randomplay = function(req,res,next){
 
     
 
-    models.Quiz.count({where:{ id:{ $notIn: req.session.preg}}})
+    models.Quiz.count()
         .then(function(cont){
 
             return models.Quiz.findAll({where:
-                    { id:{$notIn: [req.session.preg]}
+                    { id:{$notIn: req.session.preg}
             }})
             .then(function(quiz){
 	    var rnd = Math.floor((Math.random()*(cont - 0) + 0));
