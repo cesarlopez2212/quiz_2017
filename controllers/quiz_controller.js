@@ -6,11 +6,11 @@ var paginate = require('../helpers/paginate').paginate;
 exports.load = function (req, res, next, quizId) {
 
     models.Quiz.findById(quizId, {
-        include: [
-            models.Tip,
-            {model: models.User, as: 'Author'}
-        ]
-    })
+        include:[ 
+		{model: models.Tip,include:[ {model: models.User, as: 'Author'} ] },
+		{model:models.User,as:'Author'}
+		]
+	})
     .then(function (quiz) {
         if (quiz) {
             req.quiz = quiz;
@@ -30,8 +30,8 @@ exports.adminOrAuthorRequired = function(req, res, next){
 
     var isAdmin  = req.session.user.isAdmin;
     var isAuthor = req.quiz.AuthorId === req.session.user.id;
-
-    if (isAdmin || isAuthor) {
+    var isTipAuthor = req.tip.AuthorId === req.session.user.id;
+    if (isAdmin || isAuthor || isTipAuthor) {
         next();
     } else {
         console.log('Operación prohibida: El usuario logeado no es el autor del quiz, ni un administrador.');
@@ -92,9 +92,7 @@ exports.index = function (req, res, next) {
             search: search,
             title: title
 
-	   res.render('quizzes/index.ejs', {
-           quizzes: quizzes,
-            search: search
+	  
 
         });
     })
